@@ -1,5 +1,6 @@
 import { sqlite, PORT, DEMO_ORG_ID } from "./config";
 import { criarHandler, type Rota } from "./router";
+import { ipDoCliente } from "./middleware/limite";
 import { garantirSchema } from "@cav-crm/db";
 import { json } from "./http";
 import { iniciarJobs } from "./jobs";
@@ -48,7 +49,14 @@ const rotas: Rota[] = [
   ...rotasDemo,
 ];
 
-const fetch = criarHandler(rotas, sqlite);
+/**
+ * O IP do socket só existe no `fetch` do servidor, que é quem tem o `server`.
+ * O `Request` não carrega essa informação, então ela é posta aqui na chegada e
+ * lida pelo router ao limitar as rotas públicas.
+ */
+const ipPorRequisicao = new WeakMap<Request, string>();
+
+const fetch = criarHandler(rotas, sqlite, (req) => ipPorRequisicao.get(req) ?? "desconhecido");
 
 /**
  * Extrai o target cru SEM passar por `new URL()`. Qualquer `new URL()` aqui
@@ -68,8 +76,12 @@ export default {
    * O segundo argumento é o target cru do HTTP, ANTES de qualquer
    * normalização. É a única fonte onde `..` e `%2e%2e` ainda existem.
    */
-  fetch(req: Request, server: { requestIP?: unknown }) {
-    void server;
+  fetch(req: Request, server: { requestIP?: (req: Request) => unknown }) {
+    const ip = ipDoCliente(
+      typeof server.requestIP === "function" ? server.requestIP(req) : undefined,
+      req.headers,
+    );
+    ipPorRequisicao.set(req, ip);
     return fetch(req, targetCru(req.url));
   },
 };

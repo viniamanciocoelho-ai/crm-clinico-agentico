@@ -731,6 +731,7 @@ const obter: Rota = {
   metodo: "GET",
   caminho: "/demo",
   publica: true,
+  limite: "demo",
   handler({ sqlite }) {
     const org = sqlite
       .query(`SELECT nome, timezone, criado_em FROM organizacoes WHERE organizacao_id = ?`)
@@ -771,6 +772,7 @@ const resetar: Rota = {
   metodo: "POST",
   caminho: "/demo/reset",
   publica: true,
+  limite: "demo-reset",
   async handler({ sqlite }) {
     semearDemo(sqlite);
     return json({ ok: true, organizacao: DEMO_ORG_ID, mensagem: "Demo recriada do zero." });
@@ -786,6 +788,7 @@ const simularMensagem: Rota = {
   metodo: "POST",
   caminho: "/demo/conversas/:id/mensagem",
   publica: true,
+  limite: "demo",
   async handler({ sqlite, params, req }) {
     const corpo = (await req.json().catch(() => ({}))) as { texto?: string };
     const texto = (corpo.texto ?? "").trim();
@@ -825,6 +828,7 @@ const conversas: Rota = {
   metodo: "GET",
   caminho: "/demo/conversas",
   publica: true,
+  limite: "demo",
   handler({ sqlite }) {
     const linhas = sqlite
       .query(
@@ -847,6 +851,7 @@ const mensagens: Rota = {
   metodo: "GET",
   caminho: "/demo/conversas/:id",
   publica: true,
+  limite: "demo",
   handler({ sqlite, params }) {
     const conversa = sqlite
       .query(

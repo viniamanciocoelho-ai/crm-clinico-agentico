@@ -2,6 +2,7 @@ import type { SessionData } from "@cav-crm/shared";
 import { resolveContext } from "./middleware/tenant";
 import { exigirPermissao } from "./middleware/permissoes";
 import { ApiError, respostaDeErro } from "./http";
+import { BALDES, consumir } from "./middleware/limite";
 
 export interface ContextoRota {
   req: Request;
@@ -22,6 +23,12 @@ export interface Rota {
   permissao?: string;
   /** `true` dispensa autenticação (login, health, demo pública). */
   publica?: boolean;
+  /**
+   * Balde de limite de taxa por IP (chave de `BALDES`). Ausente = sem limite.
+   * Use nas rotas públicas, onde não há sessão a quem responsabilizar; rotas
+   * autenticadas ficam de fora para não punir uso legítimo.
+   */
+  limite?: string;
   handler: (ctx: ContextoRota) => Promise<Response> | Response;
 }
 
@@ -92,7 +99,16 @@ function comCors(res: Response, req: Request): Response {
  * `urlBruta` é obrigatório — sem ele o gate de traversal não vê nada, porque
  * `new URL()` já apagou o rastro antes de qualquer verificação.
  */
-export function criarHandler(rotas: Rota[], sqlite: import("bun:sqlite").Database) {
+export function criarHandler(
+  rotas: Rota[],
+  sqlite: import("bun:sqlite").Database,
+  /**
+   * IP do cliente, para o limite de taxa das rotas públicas. Injetado porque só
+   * o servidor conhece o `requestIP` — o router roda também nos testes, onde
+   * não há socket nenhum.
+   */
+  obterIp: (req: Request) => string = () => "desconhecido",
+) {
   return async function fetch(req: Request, urlBruta: string): Promise<Response> {
     const url = new URL(req.url);
     const caminho = url.pathname;
@@ -101,6 +117,8 @@ export function criarHandler(rotas: Rota[], sqlite: import("bun:sqlite").Databas
     if (req.method === "OPTIONS") {
       return comCors(new Response(null, { status: 204 }), req);
     }
+
+    const ip = obterIp(req);
 
     const casada = buscar(rotas, req.method, caminho);
     if (!casada) {
@@ -118,6 +136,22 @@ export function criarHandler(rotas: Rota[], sqlite: import("bun:sqlite").Databas
 
     try {
       const { rota, params } = casada;
+
+      if (rota.limite) {
+        // Global primeiro: um cliente martelando vários endpoints ao mesmo
+        // tempo é contido aqui, sem precisar limitar cada rota isolada.
+        for (const balde of ["global", rota.limite]) {
+          const esperar = consumir(balde, ip);
+          if (esperar !== null) {
+            return comCors(
+              respostaDeErro(
+                new ApiError(429, `Muitas requisições. Tente de novo em ${esperar}s.`),
+              ),
+              req,
+            );
+          }
+        }
+      }
 
       if (rota.publica) {
         const r = await rota.handler({
