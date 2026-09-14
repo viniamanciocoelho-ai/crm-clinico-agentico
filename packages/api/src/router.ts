@@ -2,7 +2,7 @@ import type { SessionData } from "@cav-crm/shared";
 import { resolveContext } from "./middleware/tenant";
 import { exigirPermissao } from "./middleware/permissoes";
 import { ApiError, respostaDeErro } from "./http";
-import { BALDES, consumir } from "./middleware/limite";
+import { consumir, type NomeBalde } from "./middleware/limite";
 
 export interface ContextoRota {
   req: Request;
@@ -28,7 +28,7 @@ export interface Rota {
    * Use nas rotas públicas, onde não há sessão a quem responsabilizar; rotas
    * autenticadas ficam de fora para não punir uso legítimo.
    */
-  limite?: string;
+  limite?: NomeBalde;
   handler: (ctx: ContextoRota) => Promise<Response> | Response;
 }
 
@@ -46,7 +46,11 @@ function casar(padrao: string, caminho: string): Record<string, string> | null {
   for (let i = 0; i < p.length; i++) {
     const seg = p[i];
     if (seg.startsWith(":")) {
-      params[seg.slice(1)] = decodeURIComponent(c[i]);
+      try {
+        params[seg.slice(1)] = decodeURIComponent(c[i]);
+      } catch {
+        return null;
+      }
       continue;
     }
     if (seg !== c[i]) return null;
@@ -140,7 +144,8 @@ export function criarHandler(
       if (rota.limite) {
         // Global primeiro: um cliente martelando vários endpoints ao mesmo
         // tempo é contido aqui, sem precisar limitar cada rota isolada.
-        for (const balde of ["global", rota.limite]) {
+        const baldes: NomeBalde[] = ["global", rota.limite];
+        for (const balde of baldes) {
           const esperar = consumir(balde, ip);
           if (esperar !== null) {
             return comCors(

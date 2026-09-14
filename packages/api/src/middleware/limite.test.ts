@@ -42,8 +42,8 @@ describe("Limite de taxa por IP", () => {
     expect(consumir("demo-reset", "5.5.5.5", AGORA + janelaMs)).toBeNull();
   });
 
-  it("balde desconhecido falha aberto", () => {
-    expect(consumir("nao-existe", "1.1.1.1", AGORA)).toBeNull();
+  it("não permite referenciar balde inexistente", () => {
+    expect(() => consumir("nao-existe" as never, "1.1.1.1", AGORA)).toThrow();
   });
 });
 

@@ -1,4 +1,4 @@
-import { describe, it, expect } from "bun:test";
+import { describe, it, expect, spyOn } from "bun:test";
 import { createJWT, verifyJWT, hashPassword, verifyPassword } from "./auth";
 import { RoleType, ROLE_PERMISSIONS } from "@cav-crm/shared";
 
@@ -38,20 +38,14 @@ describe("Authentication", () => {
       email: "test@test.com",
     };
 
-    // Create token with past expiry (manual hack for testing)
-    const header = Buffer.from(JSON.stringify({ alg: "HS256", typ: "JWT" })).toString("base64url");
-    const now = Math.floor(Date.now() / 1000);
-    const body = Buffer.from(
-      JSON.stringify({
-        ...payload,
-        iat: now - 1000,
-        exp: now - 1, // Expired 1 second ago
-      })
-    ).toString("base64url");
-
-    // Skip verification for this test since it's expired
-    const expiredPayload = JSON.parse(Buffer.from(body, "base64url").toString());
-    expect(expiredPayload.exp < now).toBe(true);
+    const token = createJWT(payload);
+    const agora = Date.now();
+    const relogio = spyOn(Date, "now").mockReturnValue(agora + 8 * 24 * 60 * 60 * 1000);
+    try {
+      expect(verifyJWT(token)).toBeNull();
+    } finally {
+      relogio.mockRestore();
+    }
   });
 
   it("should reject invalid JWT signature", () => {

@@ -11,6 +11,7 @@ const login: Rota = {
   metodo: "POST",
   caminho: "/auth/login",
   publica: true,
+  limite: "login",
   async handler({ req, sqlite }) {
     const body = await lerCorpo(req, { permitirOrganizacaoNoCorpo: true });
     const email = exigirTexto(body, "email").toLowerCase();

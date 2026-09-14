@@ -22,7 +22,10 @@ export interface RegraLimite {
  * Baldes. O reset é o caro, então tem balde próprio e mais apertado — mas ainda
  * folgado: recarregar a demo algumas vezes sem esperar precisa funcionar.
  */
-export const BALDES: Record<string, RegraLimite> = {
+export const BALDES = {
+  // Tentativas de senha: reduz brute force sem bloquear usuários legítimos
+  // por longos períodos.
+  login: { max: 10, janelaMs: 60_000 },
   // ~1 recarga a cada 3s em média. Derruba o loop, não o visitante.
   "demo-reset": { max: 20, janelaMs: 60_000 },
   // Leitura e simulação: bem mais frequentes, teto generoso.
@@ -30,7 +33,9 @@ export const BALDES: Record<string, RegraLimite> = {
   // Teto de tudo que é limitado, soma dos baldes. Pega um cliente que martela
   // vários endpoints ao mesmo tempo sem ter de limitar cada rota isolada.
   global: { max: 1200, janelaMs: 60_000 },
-};
+} satisfies Record<string, RegraLimite>;
+
+export type NomeBalde = keyof typeof BALDES;
 
 interface Contador {
   contagem: number;
@@ -53,9 +58,8 @@ function expurgar(agora: number): void {
  * Consome uma unidade do balde para aquele IP. Retorna `null` se passou, ou os
  * segundos restantes até liberar, se estourou.
  */
-export function consumir(balde: string, ip: string, agora = Date.now()): number | null {
+export function consumir(balde: NomeBalde, ip: string, agora = Date.now()): number | null {
   const regra = BALDES[balde];
-  if (!regra) return null; // balde desconhecido não limita — falha aberta
 
   // Expurgo barato: só quando o Map já está grande o bastante para importar.
   if (contadores.size > 5000) expurgar(agora);
