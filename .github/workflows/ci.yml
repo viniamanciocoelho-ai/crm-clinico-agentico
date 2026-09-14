@@ -1,9 +1,10 @@
 name: CI
 
+# `push` sem filtro de branch: toda branch e a propria main, para o caso de um
+# merge entrar sem PR. Um repositorio com tres agentes escrevendo ao mesmo tempo
+# precisa da verificacao tambem depois do merge, nao so antes.
 on:
   push:
-    branches-ignore:
-      - main
   pull_request:
     branches:
       - main
