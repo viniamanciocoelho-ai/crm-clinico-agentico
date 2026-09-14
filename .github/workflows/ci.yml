@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches-ignore:
+      - main
+  pull_request:
+    branches:
+      - main
+
+# Cancele execucoes antigas da mesma ref: um push novo torna o anterior obsoleto,
+# e fila de CI so serve para atrasar o sinal de quem esta revisando.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verificar:
+    name: test + typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      # --frozen-lockfile: a CI valida o bun.lock versionado, nao resolve
+      # dependencia nova por conta propria. Uma build que passa aqui tem de
+      # passar tambem na maquina de quem for rodar depois.
+      - name: Instalar dependencias
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Testes
+        run: bun run test
+
+      - name: Build
+        run: bun run build
