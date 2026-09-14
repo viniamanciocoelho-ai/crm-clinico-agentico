@@ -1,6 +1,7 @@
 import type { Database } from "bun:sqlite";
 import { horariosLivres, validarAgendamento, ConflitoError } from "./agenda";
 import { custoInsumos } from "./contabil";
+import { carregarOrg } from "./org";
 
 /**
  * Agente de IA do WhatsApp.
@@ -130,13 +131,8 @@ function acharProcedimento(sqlite: Database, organizacao_id: string, termo: stri
 }
 
 function configHorario(sqlite: Database, organizacao_id: string) {
-  const row = sqlite
-    .query(`SELECT horario_funcionamento, timezone FROM organizacoes WHERE organizacao_id = ?`)
-    .get(organizacao_id) as { horario_funcionamento: string | null; timezone: string } | null;
-  return {
-    horario: row?.horario_funcionamento ? JSON.parse(row.horario_funcionamento) : null,
-    timezone: row?.timezone ?? "America/Sao_Paulo",
-  };
+  const cfg = carregarOrg(sqlite, organizacao_id);
+  return { horario: cfg.horario_funcionamento, timezone: cfg.timezone };
 }
 
 /** Recurso (sala) exigido pelo procedimento, com seus tempos de preparo/limpeza. */
@@ -330,20 +326,6 @@ export function criarAgendamento(
       registrar(sqlite, ctx.organizacao_id, conversa_id, "criar_agendamento", p, { erro: "nome_ausente" });
       return { resposta, acao: "criar_agendamento", dados_entrada: p, dados_decisao: { erro: "nome_ausente" } };
     }
-    const id = uuid();
-    sqlite.run(
-      `INSERT INTO clientes (id, organizacao_id, nome, telefone, origem_lead, lgpd_consentimento, lgpd_data, lgpd_canal)
-       VALUES (?,?,?,?,?,?,?,?)`,
-      id,
-      ctx.organizacao_id,
-      p.nome_cliente,
-      p.telefone,
-      "whatsapp",
-      1,
-      Date.now(),
-      "whatsapp",
-    );
-    cliente = { id, nome: p.nome_cliente };
   }
 
   const { horario, timezone } = configHorario(sqlite, ctx.organizacao_id);
@@ -362,40 +344,60 @@ export function criarAgendamento(
     });
 
     const id = uuid();
-    sqlite.run(
-      `INSERT INTO agendamentos
-        (id, organizacao_id, cliente_id, profissional_id, sala_id, procedimento_id,
-         inicio, fim, inicio_bloqueio, fim_bloqueio, status, origem)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
-      id,
-      ctx.organizacao_id,
-      cliente.id,
-      prof.id,
-      rec?.sala_id ?? null,
-      proc.id,
-      p.inicio,
-      p.inicio + proc.duracao_min * min,
-      bloco.inicio,
-      bloco.fim,
-      "agendado",
-      "ia",
-    );
+    const clienteId = cliente?.id ?? uuid();
+    const clienteNome = cliente?.nome ?? p.nome_cliente!;
+    const tx = sqlite.transaction(() => {
+      if (!cliente) {
+        sqlite.run(
+          `INSERT INTO clientes (id, organizacao_id, nome, telefone, origem_lead, lgpd_consentimento, lgpd_data, lgpd_canal)
+           VALUES (?,?,?,?,?,?,?,?)`,
+          clienteId,
+          ctx.organizacao_id,
+          clienteNome,
+          p.telefone,
+          "whatsapp",
+          1,
+          Date.now(),
+          "whatsapp",
+        );
+      }
 
-    // lead acompanha a conversão
-    sqlite.run(
-      `INSERT INTO leads
-        (id, organizacao_id, cliente_id, nome, telefone, etapa, canal_entrada, atendido_por_tipo, ultima_interacao_em)
-       VALUES (?,?,?,?,?,?,?,?,?)`,
-      uuid(),
-      ctx.organizacao_id,
-      cliente.id,
-      cliente.nome,
-      p.telefone,
-      "agendado",
-      "whatsapp",
-      "ia",
-      Date.now(),
-    );
+      sqlite.run(
+        `INSERT INTO agendamentos
+          (id, organizacao_id, cliente_id, profissional_id, sala_id, procedimento_id,
+           inicio, fim, inicio_bloqueio, fim_bloqueio, status, origem)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
+        id,
+        ctx.organizacao_id,
+        clienteId,
+        prof.id,
+        rec?.sala_id ?? null,
+        proc.id,
+        p.inicio,
+        p.inicio + proc.duracao_min * min,
+        bloco.inicio,
+        bloco.fim,
+        "agendado",
+        "ia",
+      );
+
+      // lead acompanha a conversão
+      sqlite.run(
+        `INSERT INTO leads
+          (id, organizacao_id, cliente_id, nome, telefone, etapa, canal_entrada, atendido_por_tipo, ultima_interacao_em)
+         VALUES (?,?,?,?,?,?,?,?,?)`,
+        uuid(),
+        ctx.organizacao_id,
+        clienteId,
+        clienteNome,
+        p.telefone,
+        "agendado",
+        "whatsapp",
+        "ia",
+        Date.now(),
+      );
+    });
+    tx();
 
     const resposta = `Agendado: ${proc.nome} com ${prof.nome} em ${fmt(p.inicio, timezone)}. Vou te enviar um lembrete 24h antes — se precisar remarcar, é só responder por aqui.`;
     registrar(sqlite, ctx.organizacao_id, conversa_id, "criar_agendamento", p, { agendamento_id: id, bloco });

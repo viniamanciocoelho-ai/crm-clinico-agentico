@@ -269,49 +269,77 @@ const reembolsarAtendimento: Rota = {
   async handler({ req, sqlite, session, params }) {
     const body = await lerCorpo(req);
     const org = session.organizacao_id;
-    const original = sqlite
-      .query(`SELECT * FROM atendimentos WHERE organizacao_id = ? AND id = ?`)
-      .get(org, params.id) as Record<string, unknown> | null;
-    if (!original) throw new NotFoundError("Atendimento não encontrado nesta organização");
+    const observacoes = opcionalTexto(body, "observacoes");
+    let row: Record<string, unknown> | null = null;
 
-    const statusOriginal = original.status as StatusAtendimento;
-    if (statusOriginal === "reembolsado") {
-      throw new BadRequestError("Este atendimento já foi reembolsado");
-    }
-    if (statusOriginal !== "concluido" && statusOriginal !== "brinde") {
-      throw new BadRequestError(
-        `Só é possível reembolsar atendimento com status "concluido" ou "brinde" (atual: "${statusOriginal}")`,
-      );
-    }
+    const tx = sqlite.transaction(() => {
+      const original = sqlite
+        .query(`SELECT * FROM atendimentos WHERE organizacao_id = ? AND id = ?`)
+        .get(org, params.id) as Record<string, unknown> | null;
+      if (!original) throw new NotFoundError("Atendimento não encontrado nesta organização");
 
-    const resultado = confirmarAtendimento(sqlite, {
-      organizacao_id: org,
-      agendamento_id: (original.agendamento_id as string | null) ?? null,
-      cliente_id: original.cliente_id as string,
-      profissional_id: original.profissional_id as string,
-      procedimento_id: original.procedimento_id as string,
-      status: "reembolsado",
-      valor: original.valor as number,
-      observacoes:
-        opcionalTexto(body, "observacoes") ?? `Reembolso do atendimento ${params.id}`,
-    });
+      const statusOriginal = original.status as StatusAtendimento;
+      if (statusOriginal === "reembolsado") {
+        throw new BadRequestError("Este atendimento já foi reembolsado");
+      }
+      if (statusOriginal !== "concluido" && statusOriginal !== "brinde") {
+        throw new BadRequestError(
+          `Só é possível reembolsar atendimento com status "concluido" ou "brinde" (atual: "${statusOriginal}")`,
+        );
+      }
 
-    // O estorno da receita é do atendimento original, não do novo lançamento.
-    if (statusOriginal === "concluido" && (original.valor as number) > 0) {
+      // Inverte os movimentos efetivamente gerados pelo atendimento. Recalcular
+      // pela ficha atual poderia devolver uma quantidade diferente da consumida.
+      const saidas = sqlite
+        .query(
+          `SELECT insumo_id, SUM(quantidade) AS quantidade
+           FROM movimentacoes_estoque
+           WHERE organizacao_id = ? AND atendimento_id = ? AND tipo = 'saida'
+           GROUP BY insumo_id`,
+        )
+        .all(org, params.id) as { insumo_id: string; quantidade: number }[];
+      for (const saida of saidas) {
+        sqlite
+          .query(
+            `INSERT INTO movimentacoes_estoque
+              (id, organizacao_id, insumo_id, atendimento_id, tipo, quantidade, motivo)
+             VALUES (?,?,?,?,?,?,?)`,
+          )
+          .run(crypto.randomUUID(), org, saida.insumo_id, params.id, "entrada", saida.quantidade, "devolucao:reembolso");
+        sqlite
+          .query(`UPDATE insumos SET estoque_atual = estoque_atual + ? WHERE organizacao_id = ? AND id = ?`)
+          .run(saida.quantidade, org, saida.insumo_id);
+      }
+
+      if (statusOriginal === "concluido" && (original.valor as number) > 0) {
+        sqlite
+          .query(
+            `UPDATE pagamentos SET status = 'estornado'
+             WHERE organizacao_id = ? AND atendimento_id = ? AND status = 'pago'`,
+          )
+          .run(org, params.id);
+      }
+
       sqlite
         .query(
-          `UPDATE pagamentos SET status = 'estornado'
-           WHERE organizacao_id = ? AND atendimento_id = ? AND status = 'pago'`,
+          `UPDATE atendimentos
+           SET status = 'reembolsado',
+               observacoes = CASE
+                 WHEN ? IS NULL THEN observacoes
+                 WHEN observacoes IS NULL OR observacoes = '' THEN ?
+                 ELSE observacoes || '\n\n[Reembolso] ' || ?
+               END
+           WHERE organizacao_id = ? AND id = ? AND status IN ('concluido', 'brinde')`,
         )
-        .run(org, params.id);
-    }
-
-    const row = sqlite
-      .query(`SELECT * FROM atendimentos WHERE organizacao_id = ? AND id = ?`)
-      .get(org, resultado.id) as Record<string, unknown>;
+        .run(observacoes ?? null, observacoes ?? null, observacoes ?? null, org, params.id);
+      row = sqlite
+        .query(`SELECT * FROM atendimentos WHERE organizacao_id = ? AND id = ?`)
+        .get(org, params.id) as Record<string, unknown>;
+    });
+    tx();
 
     return json(
-      { atendimento: hidratarAtendimentos(sqlite, org, [row])[0], reembolsado_de: params.id },
+      { atendimento: hidratarAtendimentos(sqlite, org, [row!])[0], reembolsado_de: params.id },
       201,
     );
   },

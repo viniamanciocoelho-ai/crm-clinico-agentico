@@ -13,8 +13,6 @@ import type { Rota, ContextoRota } from "../router";
 const uuid = () => crypto.randomUUID();
 
 const STATUS = ["com_ia", "aguardando_humano", "com_humano", "encerrada"] as const;
-const REMETENTES = ["cliente", "ia", "humano"] as const;
-
 /** Momento em que o cliente pediu para falar com uma pessoa. */
 const STATUS_QUE_PEDEM_HUMANO = ["aguardando_humano"] as const;
 
@@ -146,6 +144,13 @@ const abrirConversa: Rota = {
     const cliente = sqlite
       .query(`SELECT id FROM clientes WHERE organizacao_id = ? AND telefone = ?`)
       .get(org, telefone) as { id: string } | null;
+    const lead_id = opcionalTexto(body, "lead_id") ?? null;
+    if (lead_id) {
+      const lead = sqlite
+        .query(`SELECT id FROM leads WHERE organizacao_id = ? AND id = ?`)
+        .get(org, lead_id);
+      if (!lead) throw new BadRequestError("Lead não encontrado nesta organização");
+    }
 
     const id = uuid();
     sqlite
@@ -157,7 +162,7 @@ const abrirConversa: Rota = {
         id,
         org,
         cliente?.id ?? null,
-        opcionalTexto(body, "lead_id") ?? null,
+        lead_id,
         canal,
         telefone,
         Date.now(),
@@ -182,10 +187,10 @@ const receberMensagemCliente: Rota = {
   async handler({ req, sqlite, session, params }) {
     const body = await lerCorpo(req);
     const org = session.organizacao_id;
-    const remetente_tipo = opcionalTexto(body, "remetente_tipo") ?? "cliente";
     const conteudo = exigirTexto(body, "conteudo");
-    if (!(REMETENTES as readonly string[]).includes(remetente_tipo)) {
-      throw new BadRequestError(`remetente_tipo inválido. Use um de: ${REMETENTES.join(", ")}`);
+    const remetente_tipo = opcionalTexto(body, "remetente_tipo");
+    if (remetente_tipo !== undefined && remetente_tipo !== "cliente") {
+      throw new BadRequestError("Esta rota só registra mensagens do cliente");
     }
 
     const conversa = sqlite
@@ -196,11 +201,7 @@ const receberMensagemCliente: Rota = {
       throw new BadRequestError("Conversa encerrada não aceita novas mensagens");
     }
 
-    registrarMensagem(sqlite, org, params.id, remetente_tipo, conteudo, null);
-
-    if (remetente_tipo !== "cliente") {
-      return json({ registrada: true, status: conversa.status });
-    }
+    registrarMensagem(sqlite, org, params.id, "cliente", conteudo, null);
 
     const motivo = detectarEscalada(conteudo);
     // Só escala conversa que ainda está com a IA — quem já está na fila humana

@@ -639,7 +639,7 @@ const moverLead: Rota = {
       valores.push(motivo_perda_id);
       campos.push("observacao_perda = ?");
       valores.push(opcionalTexto(body, "observacao_perda") ?? null);
-    } else if (body.motivo_perda_id !== undefined) {
+    } else if (lead.etapa === "perdido") {
       // Motivo só faz sentido em "perdido" — limpa ao sair de lá.
       campos.push("motivo_perda_id = NULL", "observacao_perda = NULL");
     }

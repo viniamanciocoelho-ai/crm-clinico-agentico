@@ -11,12 +11,12 @@ export interface OrgConfig {
   reativacao_dias: number;
 }
 
-function json<T>(valor: string | null): T | null {
+function json<T>(valor: string | null, campo: string): T | null {
   if (!valor) return null;
   try {
     return JSON.parse(valor) as T;
   } catch {
-    return null;
+    throw new Error(`Configuração inválida em ${campo}`);
   }
 }
 
@@ -41,8 +41,8 @@ export function carregarOrg(sqlite: Database, organizacao_id: string): OrgConfig
     organizacao_id: row.organizacao_id,
     nome: row.nome,
     timezone: row.timezone,
-    horario_funcionamento: json<HorarioSemana>(row.horario_funcionamento),
-    config_agente_ia: json<Record<string, unknown>>(row.config_agente_ia),
+    horario_funcionamento: json<HorarioSemana>(row.horario_funcionamento, "horario_funcionamento"),
+    config_agente_ia: json<Record<string, unknown>>(row.config_agente_ia, "config_agente_ia"),
     reativacao_dias: row.reativacao_dias,
   };
 }
