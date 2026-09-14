@@ -19,6 +19,6 @@
       "@cav-crm/*": ["../*/src"]
     }
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "../db/sqlite-bindings.d.ts"],
   "exclude": ["node_modules", "dist", "**/*.test.ts"]
 }
