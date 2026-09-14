@@ -1,0 +1,9 @@
+[install]
+registry = "https://registry.npmjs.org/"
+
+[loader]
+".jsx" = "jsx"
+".ts" = "tsx"
+
+[test]
+timeout = 10000

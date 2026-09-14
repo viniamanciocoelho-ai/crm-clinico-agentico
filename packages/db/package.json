@@ -1,0 +1,19 @@
+{
+  "name": "@cav-crm/db",
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "generate": "drizzle-kit generate",
+    "typecheck": "tsc --ignoreConfig --noEmit --skipLibCheck --moduleResolution bundler --module esnext --target esnext --types bun schema.ts drizzle.config.ts",
+    "migrate:dev": "bun scripts/migrate-dev.ts",
+    "migrate:prod": "bun scripts/migrate-prod.ts",
+    "seed": "bun scripts/seed.ts"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.31.2"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.22.7",
+    "typescript": "^7"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "@cav-crm/api",
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "bun run --watch src/index.ts",
+    "build": "bun build src/index.ts --target bun --outdir dist",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test src/**/*.test.ts"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.31.2",
+    "@cav-crm/shared": "workspace:*",
+    "@cav-crm/db": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^7"
+  }
+}
