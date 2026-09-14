@@ -94,7 +94,20 @@ export async function api<T>(caminho: string, opcoes: OpcoesApi = {}): Promise<T
   }
 
   const texto = await resposta.text();
-  const dados = texto.trim() ? (JSON.parse(texto) as unknown) : null;
+  let dados: unknown = null;
+  if (texto.trim()) {
+    try {
+      dados = JSON.parse(texto) as unknown;
+    } catch {
+      throw new ErroApi(
+        resposta.status,
+        resposta.ok
+          ? "A API devolveu uma resposta inválida"
+          : `Falha na requisição (${resposta.status})`,
+        "interno",
+      );
+    }
+  }
 
   if (!resposta.ok) {
     const info = (dados ?? {}) as { error?: string; tipo?: TipoErroApi; regra?: string };

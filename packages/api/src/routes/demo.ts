@@ -5,7 +5,7 @@ import { inicioDoDia } from "../lib/agenda";
 import { hashPassword } from "../lib/auth";
 import { json, BadRequestError } from "../http";
 import type { Rota } from "../router";
-import { DEMO_ORG_ID } from "../config";
+import { DEMO_MODE, DEMO_ORG_ID } from "../config";
 import { garantirSchema } from "@cav-crm/db";
 
 /**
@@ -875,3 +875,8 @@ const mensagens: Rota = {
 };
 
 export const rotasDemo: Rota[] = [obter, resetar, conversas, mensagens, simularMensagem];
+
+/** Fora do modo demo, nem os endpoints públicos nem o reset destrutivo existem. */
+export function rotasDemoAtivas(ativo = DEMO_MODE): Rota[] {
+  return ativo ? rotasDemo : [];
+}

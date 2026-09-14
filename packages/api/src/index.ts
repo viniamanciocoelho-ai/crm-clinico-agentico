@@ -1,4 +1,4 @@
-import { sqlite, PORT, DEMO_ORG_ID } from "./config";
+import { sqlite, PORT, DEMO_MODE, DEMO_ORG_ID } from "./config";
 import { criarHandler, type Rota } from "./router";
 import { ipDoCliente } from "./middleware/limite";
 import { garantirSchema } from "@cav-crm/db";
@@ -13,7 +13,7 @@ import { rotasClientes } from "./routes/clientes";
 import { rotasConversas } from "./routes/conversas";
 import { rotasAgente } from "./routes/agente";
 import { rotasPainel } from "./routes/painel";
-import { rotasDemo } from "./routes/demo";
+import { rotasDemoAtivas } from "./routes/demo";
 
 garantirSchema(sqlite);
 
@@ -32,7 +32,11 @@ const saude: Rota = {
     } catch (e) {
       banco = e instanceof Error ? e.message : "indisponível";
     }
-    return json({ status: banco === "ok" ? "ok" : "degradado", banco, organizacao_demo: DEMO_ORG_ID });
+    return json({
+      status: banco === "ok" ? "ok" : "degradado",
+      banco,
+      ...(DEMO_MODE ? { organizacao_demo: DEMO_ORG_ID } : {}),
+    });
   },
 };
 
@@ -46,7 +50,7 @@ const rotas: Rota[] = [
   ...rotasConversas,
   ...rotasAgente,
   ...rotasPainel,
-  ...rotasDemo,
+  ...rotasDemoAtivas(),
 ];
 
 /**

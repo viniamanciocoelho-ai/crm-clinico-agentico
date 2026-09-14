@@ -625,7 +625,7 @@ function SimularContato({ id }: { id: string }) {
             const conteudo = texto.trim();
             if (conteudo === "") return;
             registrar.mutate(
-              { id, conteudo, remetente_tipo: "cliente" },
+              { id, conteudo },
               {
                 onSuccess: (r) => {
                   setTexto("");

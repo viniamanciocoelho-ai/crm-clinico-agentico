@@ -12,6 +12,7 @@ import { rotasAuth } from "./routes/auth";
 import { rotasClientes } from "./routes/clientes";
 import { rotasConversas } from "./routes/conversas";
 import { rotasAtendimentos } from "./routes/atendimentos";
+import { rotasDemoAtivas } from "./routes/demo";
 
 const org = "org-teste";
 let sqlite: Database | undefined;
@@ -66,6 +67,12 @@ async function executarRota(rota: Rota, ctx: ContextoRota): Promise<Response> {
 }
 
 describe("Regressões de roteamento e contratos", () => {
+  it("não registra rotas públicas da demo quando o modo demo está desligado", () => {
+    expect(rotasDemoAtivas(false)).toEqual([]);
+    expect(rotasDemoAtivas(true).map((r) => `${r.metodo} ${r.caminho}`)).toContain("GET /demo");
+    expect(rotasDemoAtivas(true).map((r) => `${r.metodo} ${r.caminho}`)).toContain("POST /demo/reset");
+  });
+
   it("não deixa encoding inválido escapar como exceção não tratada", async () => {
     const db = banco();
     const handler = criarHandler(

@@ -90,18 +90,16 @@ export function useRegistrarMensagemCliente() {
     mutationFn: ({
       id,
       conteudo,
-      remetente_tipo,
     }: {
       id: string;
       conteudo: string;
-      remetente_tipo?: "cliente" | "ia" | "humano";
     }) =>
       api<{
         registrada: true;
         status: StatusConversa;
         motivo_escalada: string | null;
         resposta_ia?: string;
-      }>(`/conversas/${id}/mensagens`, { metodo: "POST", corpo: { conteudo, remetente_tipo } }),
+      }>(`/conversas/${id}/mensagens`, { metodo: "POST", corpo: { conteudo } }),
     onSuccess: (_dados, { id }) => {
       void qc.invalidateQueries({ queryKey: chavesConversas.item(id) });
       void qc.invalidateQueries({ queryKey: chavesConversas.todas });

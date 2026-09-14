@@ -10,6 +10,7 @@ sqlite.exec("PRAGMA journal_mode = WAL;");
 sqlite.exec("PRAGMA foreign_keys = ON;");
 
 export const PORT = Number(process.env.PORT || 3001);
+export const DEMO_MODE = process.env.DEMO_MODE === "true";
 
 /**
  * Organização da demo pública. Fixa e isolada: nenhuma rota autenticada

@@ -133,7 +133,7 @@ export interface MovimentacaoEstoque {
   atendimento_id: string | null;
   tipo: "entrada" | "saida";
   quantidade: number;
-  motivo: string | null;
+  motivo: string;
   criado_em: number;
   insumo_nome: string;
   unidade: string;
@@ -364,7 +364,6 @@ export interface RespostaConversa {
     telefone: string;
     status: StatusConversa;
     motivo_escalada: string | null;
-    assumido_por: string | null;
     ultima_mensagem_em: number | null;
     criado_em: number;
   };
@@ -374,11 +373,11 @@ export interface RespostaConversa {
 
 export interface AcaoIa {
   id: string;
+  autor_tipo: "ia";
   conversa_id: string | null;
-  cliente_id: string | null;
   tipo_acao: string;
-  entrada: string | null;
-  saida: string | null;
+  dados_entrada: string | null;
+  dados_decisao: string | null;
   sucesso: number;
   erro: string | null;
   criado_em: number;
