@@ -1,5 +1,9 @@
 # ADR 0002 — Três sistemas de servidor paralelos: decisão pendente
 
+> **Superada em 2026-09-14.** `packages/api/src/index.ts` registra todas as
+> famílias de rota no roteador próprio. Este ADR permanece apenas como contexto
+> histórico.
+
 **Status**: Proposto / decisão em aberto. Esta auditoria (Claude Cowork,
 2026-09-13) documenta a situação e recomenda uma direção, mas explicitamente
 **não toma** a decisão nem migra código — está fora do escopo de uma

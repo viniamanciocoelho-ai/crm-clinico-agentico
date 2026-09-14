@@ -1,5 +1,8 @@
 # Auditoria de validação independente — servidores da API
 
+> Histórico de 2026-09-13. Seus achados sobre sistemas de servidor foram
+> superados pela implementação e validação registradas em 2026-09-14.
+
 Data: 2026-09-13
 Autor: sessão Claude Cowork (nova sessão, sem memória da auditoria anterior)
 Escopo: validar no código, sem confiar no relatório do Cowork anterior, os documentos em `docs/architecture/`, `.ai/memory/`, `AGENTS.md` e `CLAUDE.md`.

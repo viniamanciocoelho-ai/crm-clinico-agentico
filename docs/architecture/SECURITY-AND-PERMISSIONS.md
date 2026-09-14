@@ -1,5 +1,9 @@
 # SECURITY-AND-PERMISSIONS.md — CAV CRM
 
+> Histórico de 2026-09-13. Não descreve o runtime atual; consulte
+> `SYSTEM-ARCHITECTURE.md`, `API-AND-INTEGRATIONS.md` e o relatório de correção
+> de 2026-09-14 para o estado verificado.
+
 Base: `lib/auth.ts`, `middleware/tenant.ts`, `middleware/permissoes.ts`,
 `middleware/rbac.ts`, `shared/index.ts`, `tenant.test.ts`, `auth.test.ts`,
 todos lidos na íntegra em 2026-09-13. Este documento cobre o que está

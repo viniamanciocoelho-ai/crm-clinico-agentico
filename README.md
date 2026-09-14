@@ -1,21 +1,29 @@
 # CAV CRM
 
-SaaS CRM com agente de IA para clínicas odontológicas, consultórios médicos e SPAs.
+CRM clínico multi-tenant com API Bun, roteador HTTP próprio, SQLite e frontend React 19.
 
 ## Desenvolvimento
 
 ```bash
 bun install
-bun run dev
+bun run --cwd packages/api dev
+```
+
+## Validação
+
+```bash
+bun test ./packages
+bun run typecheck
+bun run build
 ```
 
 ## Estrutura
 
-- `packages/db` — Schema Drizzle, migrações
-- `packages/api` — Servidor Hono
-- `packages/web` — Frontend React 19 + Vite
-- `packages/shared` — Types, constants
+- `packages/db` — schema Drizzle e DDL SQLite local.
+- `packages/api` — API Bun com autenticação JWT, RBAC e isolamento por `organizacao_id`.
+- `packages/web` — frontend React 19 + Vite.
+- `packages/shared` — tipos, permissões e erros compartilhados.
 
-## Variáveis de ambiente
+## Ambiente
 
-Copie `.env.example` para `.env.local` (dev) e `.env.prod` (produção).
+Use `.env.example` como referência. Em produção, `JWT_SECRET` e `PASSWORD_SALT` são obrigatórios.

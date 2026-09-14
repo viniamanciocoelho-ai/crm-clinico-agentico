@@ -1,5 +1,8 @@
 # HANDOFF-CODEX.md — CAV CRM
 
+> Handoff histórico de 2026-09-13. Consulte `PROJECT-STATUS.md` para o estado
+> operacional atual.
+
 Instruções para quem retomar este projeto usando Codex (ou outro agente sem
 o contexto de memória específico de Claude Code/Cowork). Este documento não
 assume familiaridade com `.ai/memory/` ou com as convenções de skill usadas

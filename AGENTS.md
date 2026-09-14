@@ -1,12 +1,12 @@
 # CAV CRM — Arquitetura e Comandos Compartilhados
 
 ## Objetivo
-SaaS CRM com agente de IA para clínicas odontológicas, consultórios médicos e SPAs. Stack: Bun monorepo, Hono, React 19, Drizzle, SQLite/Turso.
+SaaS CRM com agente de IA para clínicas odontológicas, consultórios médicos e SPAs. Stack: Bun monorepo, roteador HTTP nativo, React 19, Drizzle e SQLite.
 
 ## Comandos reais
-- **Dev**: `bun packages/api/src/index.ts` (API porta 3001)
-- **Test**: `bun test packages/**/*.test.ts`
-- **Build**: `bun build packages/api/src/index.ts`
+- **Dev**: `bun run --cwd packages/api dev` (API porta 3001)
+- **Test**: `bun test ./packages`
+- **Build**: `bun run build`
 - **Seed**: `bun packages/db/seed.ts`
 - **Migrate**: `bun packages/db/migrate.ts`
 
@@ -15,12 +15,12 @@ SaaS CRM com agente de IA para clínicas odontológicas, consultórios médicos 
 2. Nunca hardcode `organizacao_id` — vem de JWT autenticado apenas
 3. Validar isolamento de tenant em toda query/mutation
 4. Sem segredos em `.env` ou commits
-5. Sem push, merge, deploy ou alteração de produção
+5. Sem merge, deploy ou alteração de produção sem pedido explícito
 6. Testes verdes antes de prosseguir fase
 7. YAGNI — sem abstrações prematuras
 8. Alterações mínimas e reversíveis
 
-## Fases (1-11)
-- **0**: ✅ Monorepo, tenant middleware, testes isolamento
-- **1**: ⏳ Login JWT, RBAC, seed demo (WIP — Hono body parsing)
-- **2-11**: Catálogo, agenda, atendimento, CRM, conversas, IA, jobs, painel, demo, UI
+## Estado atual
+- API: rotas de autenticação, catálogo, agenda, atendimento, CRM, conversas, agente, painel e demo estão registradas em `src/index.ts`.
+- Segurança: tenant vem exclusivamente do JWT; permissões são verificadas no roteador.
+- Não executar migrations remotas, deploy, merge ou force push sem solicitação explícita.

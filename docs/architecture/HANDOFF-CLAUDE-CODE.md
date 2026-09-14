@@ -1,5 +1,8 @@
 # HANDOFF-CLAUDE-CODE.md — CAV CRM
 
+> Handoff histórico de 2026-09-13. Consulte `PROJECT-STATUS.md` para o estado
+> operacional atual.
+
 Instruções para quem retomar este projeto usando Claude Code (CLI local, com
 acesso a shell). Escrito ao final de uma auditoria feita via Claude Cowork,
 que não teve acesso a shell durante toda a execução.
